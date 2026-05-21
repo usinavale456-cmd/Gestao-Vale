@@ -1,0 +1,6 @@
+{
+  "name": "Gestão Semanal Agroindustrial",
+  "description": "Plataforma de gestão para controle de produção (cana moída, ATR, açúcar/etanol), custos setoriais e qualidade química com dashboards dinâmicos, comparativos de safras e geração de relatórios.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

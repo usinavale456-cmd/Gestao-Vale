@@ -1,0 +1,190 @@
+{
+  "entities": {
+    "Producao": {
+      "title": "Produção Semanal",
+      "description": "Registro semanal dos indicadores de moagem de cana, ATR e produção de açúcar e etanol.",
+      "type": "object",
+      "properties": {
+        "semana": {
+          "type": "string",
+          "description": "Identificador da semana no formato YYYY-Www, ex: 2026-W20"
+        },
+        "cana_moida": {
+          "type": "number",
+          "description": "Toneladas de cana moída"
+        },
+        "atr": {
+          "type": "number",
+          "description": "Açúcares Totais Recuperáveis em kg/t"
+        },
+        "extracao": {
+          "type": "number",
+          "description": "Eficiência da extração em percentual %"
+        },
+        "acucar": {
+          "type": "number",
+          "description": "Produção de açúcar em sacas (ou toneladas)"
+        },
+        "etanol": {
+          "type": "number",
+          "description": "Produção de etanol em metros cúbicos m³"
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "updatedBy": {
+          "type": "string"
+        }
+      },
+      "required": ["semana", "cana_moida", "atr", "extracao", "acucar", "etanol", "updatedAt", "updatedBy"]
+    },
+    "Custos": {
+      "title": "Custos Semanais e Insumos",
+      "description": "Controle semanal de custos totais, custo por tonelada, distribuição por setor e insumos químicos.",
+      "type": "object",
+      "properties": {
+        "semana": {
+          "type": "string",
+          "description": "Identificador da semana"
+        },
+        "custo_total": {
+          "type": "number",
+          "description": "Custo total semanal em R$"
+        },
+        "custo_por_ton": {
+          "type": "number",
+          "description": "Custo por tonelada em R$/t"
+        },
+        "setor": {
+          "type": "string",
+          "description": "Setor primário (ex: Agrícola, Industrial, Administrativo)"
+        },
+        "custo_industrial": {
+          "type": "number",
+          "description": "Definição do custo do setor industrial"
+        },
+        "custo_agricola": {
+          "type": "number",
+          "description": "Definição do custo do setor agrícola"
+        },
+        "insumos_quimicos": {
+          "type": "number",
+          "description": "Custo total com insumos químicos na semana"
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "updatedBy": {
+          "type": "string"
+        }
+      },
+      "required": ["semana", "custo_total", "custo_por_ton", "setor", "custo_industrial", "custo_agricola", "insumos_quimicos", "updatedAt", "updatedBy"]
+    },
+    "Qualidade": {
+      "title": "Qualidade Agroindustrial",
+      "description": "Análise semanal da qualidade do caldo, fermentação e perdas no processo.",
+      "type": "object",
+      "properties": {
+        "semana": {
+          "type": "string",
+          "description": "Identificador da semana"
+        },
+        "acidez_dornas": {
+          "type": "number",
+          "description": "Acidez nas dornas de fermentação em g/L"
+        },
+        "acidez_mosto": {
+          "type": "number",
+          "description": "Acidez do mosto em g/L"
+        },
+        "impurezas": {
+          "type": "number",
+          "description": "Impurezas minerais / vegetais na cana %"
+        },
+        "perdas_art": {
+          "type": "number",
+          "description": "Perdas globais em Açúcares Redutores Totais %"
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "updatedBy": {
+          "type": "string"
+        }
+      },
+      "required": ["semana", "acidez_dornas", "acidez_mosto", "impurezas", "perdas_art", "updatedAt", "updatedBy"]
+    },
+    "Usuarios": {
+      "title": "Perfis de Usuários",
+      "description": "Controle de perfis e permissões dos usuários do sistema.",
+      "type": "object",
+      "properties": {
+        "uid": {
+          "type": "string"
+        },
+        "nome": {
+          "type": "string"
+        },
+        "perfil": {
+          "type": "string",
+          "enum": ["gestor", "operador", "analista"]
+        },
+        "email": {
+          "type": "string"
+        },
+        "permissoes": {
+          "type": "string"
+        }
+      },
+      "required": ["uid", "nome", "perfil", "email"]
+    },
+    "Metas": {
+      "title": "Metas Agroindustriais",
+      "description": "Configuração de metas semanais dos principais indicadores para triggers de alertas.",
+      "type": "object",
+      "properties": {
+        "indicador": {
+          "type": "string",
+          "description": "ID do indicador (ex: cana_moida, atr, extracao, perdas_art)"
+        },
+        "valor_meta": {
+          "type": "number",
+          "description": "Valor numérico da meta para comparação"
+        },
+        "tipo_comparacao": {
+          "type": "string",
+          "enum": [">=", "<=", "==", ">", "<"]
+        },
+        "unidade": {
+          "type": "string"
+        }
+      },
+      "required": ["indicador", "valor_meta", "tipo_comparacao", "unidade"]
+    }
+  },
+  "firestore": {
+    "producao/{semanaId}": {
+      "schema": "Producao",
+      "description": "Coleção contendo a produção semanal de cada período."
+    },
+    "custos/{custosId}": {
+      "schema": "Custos",
+      "description": "Coleção contendo os custos setoriais e insumos químicos de cada semana."
+    },
+    "qualidade/{qualidadeId}": {
+      "schema": "Qualidade",
+      "description": "Coleção contendo os indicadores físico-químicos e de perdas de qualidade para cada semana."
+    },
+    "usuarios/{userId}": {
+      "schema": "Usuarios",
+      "description": "Coleção de perfis de usuários."
+    },
+    "metas/{indicadorId}": {
+      "schema": "Metas",
+      "description": "Coleção das metas operacionais da agroindústria."
+    }
+  }
+}

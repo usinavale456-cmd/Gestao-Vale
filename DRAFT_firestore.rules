@@ -1,0 +1,180 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // 1. Global Safety Net: Default Deny Catch-All
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    // --- REUSABLE SECURITY PRIMITIVES ---
+    
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isVerified() {
+      // Mandate verification if email exists (safeguard)
+      return isSignedIn() && (request.auth.token.email_verified == true || isBootstrappedAdmin());
+    }
+
+    function isBootstrappedAdmin() {
+      return isSignedIn() && request.auth.token.email == "usinavale456@gmail.com";
+    }
+
+    // Helper to extract user profile
+    function getUserRecord() {
+      return get(/databases/$(database)/documents/usuarios/$(request.auth.uid)).data;
+    }
+
+    // True Admin check (either email is bootstrapped, or check DB record)
+    function isGestor() {
+      return isVerified() && (
+        isBootstrappedAdmin() || 
+        (exists(/databases/$(database)/documents/usuarios/$(request.auth.uid)) && getUserRecord().perfil == "gestor")
+      );
+    }
+
+    // Operator can submit input weekly summaries
+    function isOperador() {
+      return isVerified() && (
+        isBootstrappedAdmin() ||
+        (exists(/databases/$(database)/documents/usuarios/$(request.auth.uid)) && getUserRecord().perfil == "operador")
+      );
+    }
+
+    // Analyst role or higher
+    function isAnalista() {
+      return isVerified() && (
+        isBootstrappedAdmin() ||
+        (exists(/databases/$(database)/documents/usuarios/$(request.auth.uid)) && 
+         (getUserRecord().perfil == "analista" || getUserRecord().perfil == "operador" || getUserRecord().perfil == "gestor"))
+      );
+    }
+
+    function canWriteMetrics() {
+      return isGestor() || isOperador();
+    }
+
+    function isValidId(id) {
+      return id is string && id.size() <= 64 && id.matches('^[a-zA-Z0-9_\\-]+$');
+    }
+
+    // --- SCHEMA VALIDATION BLUEPRINTS ---
+
+    function isValidProducao(p) {
+      return p.keys().hasAll(['semana', 'cana_moida', 'atr', 'extracao', 'acucar', 'etanol', 'updatedAt', 'updatedBy'])
+        && p.keys().size() == 8
+        && p.semana is string && p.semana.size() >= 7 && p.semana.size() <= 10
+        && p.cana_moida is number && p.cana_moida >= 0.0 && p.cana_moida <= 1000000.0
+        && p.atr is number && p.atr >= 0.0 && p.atr <= 300.0
+        && p.extracao is number && p.extracao >= 0.0 && p.extracao <= 100.0
+        && p.acucar is number && p.acucar >= 0.0 && p.acucar <= 10000000.0
+        && p.etanol is number && p.etanol >= 0.0 && p.etanol <= 1000000.0
+        && p.updatedBy == request.auth.uid
+        && p.updatedAt == request.time;
+    }
+
+    function isValidCustos(c) {
+      return c.keys().hasAll(['semana', 'custo_total', 'custo_por_ton', 'setor', 'custo_industrial', 'custo_agricola', 'insumos_quimicos', 'updatedAt', 'updatedBy'])
+        && c.keys().size() == 9
+        && c.semana is string && c.semana.size() >= 7 && c.semana.size() <= 10
+        && c.custo_total is number && c.custo_total >= 0.0 && c.custo_total <= 100000000.0
+        && c.custo_por_ton is number && c.custo_por_ton >= 0.0 && c.custo_por_ton <= 10000.0
+        && c.setor is string && c.setor.size() <= 50
+        && c.custo_industrial is number && c.custo_industrial >= 0.0 && c.custo_industrial <= 50000000.0
+        && c.custo_agricola is number && c.custo_agricola >= 0.0 && c.custo_agricola <= 50000000.0
+        && c.insumos_quimicos is number && c.insumos_quimicos >= 0.0 && c.insumos_quimicos <= 10000000.0
+        && c.updatedBy == request.auth.uid
+        && c.updatedAt == request.time;
+    }
+
+    function isValidQualidade(q) {
+      return q.keys().hasAll(['semana', 'acidez_dornas', 'acidez_mosto', 'impurezas', 'perdas_art', 'updatedAt', 'updatedBy'])
+        && q.keys().size() == 6
+        && q.semana is string && q.semana.size() >= 7 && q.semana.size() <= 10
+        && q.acidez_dornas is number && q.acidez_dornas >= 0.0 && q.acidez_dornas <= 50.0
+        && q.acidez_mosto is number && q.acidez_mosto >= 0.0 && q.acidez_mosto <= 50.0
+        && q.impurezas is number && q.impurezas >= 0.0 && q.impurezas <= 100.0
+        && q.perdas_art is number && q.perdas_art >= 0.0 && q.perdas_art <= 100.0
+        && q.updatedBy == request.auth.uid
+        && q.updatedAt == request.time;
+    }
+
+    function isValidMetas(m) {
+      return m.keys().hasAll(['indicador', 'valor_meta', 'tipo_comparacao', 'unidade'])
+        && m.keys().size() == 4
+        && m.indicador is string && m.indicador.size() <= 50
+        && m.valor_meta is number && m.valor_meta >= 0.0
+        && m.tipo_comparacao is string && (m.tipo_comparacao == ">=" || m.tipo_comparacao == "<=" || m.tipo_comparacao == "==" || m.tipo_comparacao == ">" || m.tipo_comparacao == "<")
+        && m.unidade is string && m.unidade.size() <= 10;
+    }
+
+    function isValidUsuarios(u) {
+      return u.keys().hasAll(['uid', 'nome', 'perfil', 'email', 'permissoes'])
+        && u.keys().size() == 5
+        && u.uid == request.auth.uid
+        && u.nome is string && u.nome.size() >= 1 && u.nome.size() <= 100
+        && u.email == request.auth.token.email
+        && u.perfil is string && (u.perfil == "gestor" || u.perfil == "operador" || u.perfil == "analista")
+        && u.permissoes is string && u.permissoes.size() <= 200;
+    }
+
+    // --- COLLECTIONS match BLOCKS ---
+
+    // 1. Producao Weekly Record
+    match /producao/{semanaId} {
+      allow read: if isAnalista();
+      allow create: if canWriteMetrics() && isValidId(semanaId) && isValidProducao(request.resource.data) && request.resource.data.semana == semanaId;
+      allow update: if canWriteMetrics() && isValidId(semanaId) && isValidProducao(request.resource.data) 
+                    && request.resource.data.semana == semanaId 
+                    && request.resource.data.semana == resource.data.semana; // Semana is immutable
+      allow delete: if isGestor();
+    }
+
+    // 2. Custos Weekly Record
+    match /custos/{custosId} {
+      allow read: if isAnalista();
+      allow create: if canWriteMetrics() && isValidId(custosId) && isValidCustos(request.resource.data) && request.resource.data.semana == custosId;
+      allow update: if canWriteMetrics() && isValidId(custosId) && isValidCustos(request.resource.data)
+                    && request.resource.data.semana == custosId
+                    && request.resource.data.semana == resource.data.semana; // Semana is immutable
+      allow delete: if isGestor();
+    }
+
+    // 3. Qualidade Weekly Record
+    match /qualidade/{qualidadeId} {
+      allow read: if isAnalista();
+      allow create: if canWriteMetrics() && isValidId(qualidadeId) && isValidQualidade(request.resource.data) && request.resource.data.semana == qualidadeId;
+      allow update: if canWriteMetrics() && isValidId(qualidadeId) && isValidQualidade(request.resource.data)
+                    && request.resource.data.semana == qualidadeId
+                    && request.resource.data.semana == resource.data.semana; // Semana is immutable
+      allow delete: if isGestor();
+    }
+
+    // 4. Metas (Goals configurations)
+    match /metas/{indicadorId} {
+      allow read: if isAnalista();
+      allow write: if isGestor() && isValidId(indicadorId) && isValidMetas(request.resource.data) && request.resource.data.indicador == indicadorId;
+    }
+
+    // 5. Usuarios Directory
+    match /usuarios/{userId} {
+      allow read: if isAnalista();
+      // Any authenticated user with verified email can register their own profile (cannot create as gestor unless bootstrapped)
+      allow create: if isVerified() && request.auth.uid == userId && isValidId(userId) && isValidUsuarios(request.resource.data)
+                    && (request.resource.data.perfil != "gestor" || isBootstrappedAdmin());
+      // A user is allowed to update their own non-critical profile fields, while Gestor is unrestricted
+      allow update: if isVerified() && isValidId(userId) && (
+        isGestor() || (
+          request.auth.uid == userId 
+          && isValidUsuarios(request.resource.data)
+          && request.resource.data.perfil == resource.data.perfil // Owner cannot change role
+          && request.resource.data.uid == resource.data.uid       // UID is immortal
+          && request.resource.data.email == resource.data.email     // Email is immortal
+        )
+      );
+      allow delete: if isGestor();
+    }
+  }
+}
