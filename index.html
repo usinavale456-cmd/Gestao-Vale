@@ -1,13 +1,738 @@
-<!doctype html>
-<html lang="en">
-  <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>My Google AI Studio App</title>
-  </head>
-  <body>
-    <div id="root"></div>
-    <script type="module" src="/src/main.tsx"></script>
-  </body>
-</html>
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Controle Químico — Usina Vale</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.4/chart.umd.min.js"></script>
+<style>
+:root{
+--bg-dark:#0A1A0F;
+--sidebar:#0E2014;
+--card:#122719;
+--card2:#0F2217;
+--green-head:#1A3828;
+--green-med:#2D6A4F;
+--accent:#52B788;
+--amber:#F6AE2D;
+--red:#E63946;
+--text:#E4EDE8;
+--muted:#8FA396;
+--border:#23392B;
+--mono: 'SF Mono', 'Cascadia Code', 'Consolas', monospace;
+}
+*{box-sizing:border-box;}
+html,body{margin:0;padding:0;}
+body{
+background:var(--bg-dark);
+color:var(--text);
+font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+font-size:14px;
+}
+.app{display:flex;min-height:100vh;}
 
+/* ---------- SIDEBAR ---------- */
+.sidebar{
+width:236px;flex-shrink:0;background:var(--sidebar);
+border-right:1px solid var(--border);
+padding:22px 14px;display:flex;flex-direction:column;gap:2px;
+}
+.brand{padding:6px 10px 22px;}
+.brand .eyebrow{color:var(--accent);font-size:11px;letter-spacing:.12em;text-transform:uppercase;font-weight:700;}
+.brand h1{font-size:16px;margin:4px 0 0;color:#fff;font-weight:700;line-height:1.3;}
+.nav-item{
+display:flex;align-items:center;gap:10px;
+padding:10px 12px;border-radius:8px;cursor:pointer;
+color:var(--muted);font-size:13.5px;font-weight:500;
+transition:background .15s, color .15s;
+user-select:none;
+}
+.nav-item .ic{font-size:15px;width:18px;text-align:center;}
+.nav-item:hover{background:rgba(255,255,255,0.04);color:var(--text);}
+.nav-item.active{background:var(--green-head);color:#fff;}
+.sidebar-footer{margin-top:auto;padding:10px;font-size:11px;color:var(--muted);border-top:1px solid var(--border);padding-top:14px;}
+
+/* ---------- MAIN ---------- */
+.main{flex:1;padding:30px 36px 60px;min-width:0;overflow-x:auto;}
+.view.hidden{display:none;}
+.view-header{display:flex;justify-content:space-between;align-items:flex-end;margin-bottom:6px;flex-wrap:wrap;gap:10px;}
+.view-header h2{font-size:21px;margin:0;color:#fff;}
+.view-sub{color:var(--muted);font-size:13px;margin:4px 0 22px;max-width:760px;line-height:1.5;}
+
+.card{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:20px;margin-bottom:22px;}
+.card h3{margin:0 0 14px;font-size:13px;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;font-weight:700;}
+
+/* forms */
+.form-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:12px;align-items:end;}
+.field label{display:block;font-size:12px;color:var(--muted);margin-bottom:5px;}
+input,select,textarea{
+width:100%;background:var(--card2);border:1px solid var(--border);color:var(--text);
+border-radius:7px;padding:8px 10px;font-size:13.5px;font-family:inherit;
+}
+textarea{font-family:var(--mono);}
+input:focus,select:focus{outline:2px solid var(--accent);outline-offset:1px;}
+button{font-family:inherit;cursor:pointer;}
+button.primary{
+background:var(--accent);color:#06160D;font-weight:700;border:none;
+border-radius:7px;padding:9px 18px;font-size:13.5px;white-space:nowrap;
+}
+button.primary:hover{background:#67c79a;}
+button.ghost{background:transparent;border:1px solid var(--border);color:var(--text);border-radius:7px;padding:9px 16px;font-size:13px;}
+button.ghost:hover{border-color:var(--accent);color:var(--accent);}
+.hidden{display:none !important;}
+
+/* tables */
+.table-wrap{overflow-x:auto;border-radius:10px;border:1px solid var(--border);}
+
+#tbl-containers th:last-child,
+#tbl-containers td:last-child{
+position:sticky;right:0;z-index:5;
+box-shadow:-6px 0 8px -6px rgba(0,0,0,0.4);
+}
+#tbl-containers thead th:last-child{background:var(--green-head);}
+#tbl-containers tbody td:last-child{background:var(--card2);}
+#tbl-containers tbody tr:nth-child(even) td:last-child{background:#142a1c;}
+table{width:100%;border-collapse:collapse;font-size:13px;min-width:640px;}
+thead th{
+background:var(--green-head);color:#fff;text-align:left;
+padding:10px 12px;font-weight:600;white-space:nowrap;
+}
+tbody td{padding:9px 12px;border-bottom:1px solid var(--border);}
+tbody tr:nth-child(even){background:rgba(255,255,255,0.018);}
+tbody tr:hover{background:rgba(82,183,136,0.06);}
+td.mono{font-family:var(--mono);}
+td.bold{font-weight:700;}
+td.accent{color:var(--accent);}
+td.neg{color:var(--red) !important;}
+.empty{text-align:center;color:var(--muted);padding:26px 10px !important;font-style:italic;}
+.inline-input{padding:5px 8px;font-size:12.5px;min-width:70px;}
+
+/* badges */
+.badge{display:inline-block;padding:3px 9px;border-radius:20px;font-size:11.5px;font-weight:700;white-space:nowrap;}
+.badge-tipo{background:var(--green-med);color:#fff;}
+.badge-critico{background:var(--red);color:#fff;}
+.badge-atencao{background:var(--amber);color:#1a1305;}
+.badge-ok{background:var(--accent);color:#06160D;}
+.badge-fin{background:#3a4a41;color:#cfd9d3;}
+
+.icon-btn{background:transparent;border:none;color:var(--muted);font-size:13px;padding:4px 8px;border-radius:6px;}
+.icon-btn:hover{background:rgba(255,255,255,0.07);color:var(--text);}
+.icon-btn.danger:hover{color:var(--red);}
+.icon-btn.ok-btn{color:var(--accent);font-weight:700;}
+
+/* KPI cards */
+.kpi-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:16px;margin-bottom:26px;}
+.kpi{background:var(--green-head);border-left:4px solid var(--accent);border-radius:10px;padding:16px 18px;}
+.kpi.amber{border-left-color:var(--amber);}
+.kpi.red{border-left-color:var(--red);}
+.kpi .kpi-label{font-size:11px;color:#9FBFAE;text-transform:uppercase;letter-spacing:.06em;font-weight:700;}
+.kpi .kpi-value{font-size:28px;font-weight:800;color:#fff;margin-top:8px;}
+
+/* charts */
+.chart-grid{display:grid;grid-template-columns:1fr 1fr;gap:18px;margin-bottom:18px;}
+.chart-card{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:18px;}
+.chart-card h4{margin:0 0 12px;font-size:13px;color:var(--muted);font-weight:600;}
+.chart-card canvas{max-height:260px;}
+.chart-card.wide{grid-column:1 / -1;}
+
+/* toast */
+#toast{
+position:fixed;bottom:22px;left:50%;transform:translateX(-50%) translateY(20px);
+background:#16321F;border:1px solid var(--accent);color:#fff;
+padding:11px 20px;border-radius:30px;font-size:13px;font-weight:600;
+opacity:0;transition:opacity .25s, transform .25s;pointer-events:none;z-index:999;
+box-shadow:0 8px 24px rgba(0,0,0,0.4);
+}
+#toast.show{opacity:1;transform:translateX(-50%) translateY(0);}
+#toast.error{border-color:var(--red);background:#3a1418;}
+
+.backup-bar{display:flex;gap:10px;align-items:center;margin-top:10px;}
+.backup-bar input[type=file]{display:none;}
+
+.danger-zone{border:1px solid rgba(230,57,70,0.4);background:rgba(230,57,70,0.05);}
+.danger-btn{
+background:transparent;border:1px solid var(--red);color:var(--red);
+border-radius:7px;padding:9px 16px;font-size:13px;font-weight:700;
+}
+.danger-btn:hover{background:var(--red);color:#fff;}
+
+/* ---------- SINCRONIZAÇÃO ---------- */
+.sync-status-text{font-size:12.5px;font-weight:700;padding:8px 12px;border-radius:7px;}
+.sync-status-text.sync-off{background:rgba(255,255,255,0.04);color:var(--muted);}
+.sync-status-text.sync-connecting{background:rgba(246,174,45,0.12);color:var(--amber);}
+.sync-status-text.sync-on{background:rgba(82,183,136,0.12);color:var(--accent);}
+.sync-status-text.sync-error{background:rgba(230,57,70,0.12);color:var(--red);}
+#sync-config-input{width:100%;font-family:var(--mono);font-size:12px;resize:vertical;}
+.sync-help{margin-top:14px;padding:14px 16px;background:var(--card2);border-radius:8px;border:1px solid var(--border);}
+.sync-help ol{margin:0;padding-left:18px;color:var(--muted);font-size:12.5px;line-height:1.8;}
+.sync-help code{background:rgba(255,255,255,0.07);padding:1px 5px;border-radius:4px;font-family:var(--mono);font-size:11.5px;color:var(--accent);}
+.sync-help.hidden{display:none;}
+
+/* ---------- MODAL ---------- */
+.modal-overlay{
+position:fixed;inset:0;background:rgba(5,12,8,0.72);
+display:flex;align-items:center;justify-content:center;z-index:200;padding:16px;
+}
+.modal-overlay.hidden{display:none;}
+.modal-box{
+background:var(--card);border:1px solid var(--border);border-radius:12px;
+width:100%;max-width:560px;max-height:90vh;overflow-y:auto;
+box-shadow:0 20px 60px rgba(0,0,0,0.5);
+}
+.modal-head{display:flex;justify-content:space-between;align-items:center;padding:16px 20px;border-bottom:1px solid var(--border);}
+.modal-head h3{margin:0;font-size:15px;color:#fff;}
+.modal-grid{padding:18px 20px;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));}
+.modal-foot{display:flex;justify-content:flex-end;gap:10px;padding:14px 20px;border-top:1px solid var(--border);}
+
+/* ---------- BOTÕES DE AÇÃO NA TABELA ---------- */
+.row-actions{display:flex;gap:4px;white-space:nowrap;}
+.icon-btn.edit-btn:hover{color:var(--amber);}
+
+/* ---------- CARTÃO "FLUXO DO DIA" ---------- */
+.guide-card{position:relative;border:1px solid var(--green-med);}
+.guide-close{position:absolute;top:10px;right:10px;}
+.guide-steps{display:grid;grid-template-columns:repeat(4,1fr);gap:16px;}
+.guide-step{display:flex;gap:10px;align-items:flex-start;}
+.guide-num{
+flex-shrink:0;width:24px;height:24px;border-radius:50%;background:var(--accent);color:#06160D;
+font-weight:800;font-size:12.5px;display:flex;align-items:center;justify-content:center;
+}
+.guide-step b{color:#fff;font-size:13px;}
+.guide-step span{color:var(--muted);font-size:12px;line-height:1.4;}
+.guide-card.hidden{display:none;}
+
+/* ---------- ABA ENTRADAS ---------- */
+.entradas-grid{display:grid;grid-template-columns:1fr 1fr;gap:18px;margin-bottom:18px;}
+.entradas-form{grid-template-columns:1fr;}
+
+/* ---------- RELATÓRIO ---------- */
+.report-sheet{
+background:#fff;color:#15201A;border-radius:10px;padding:30px 34px;
+border:1px solid var(--border);
+}
+.report-head{display:flex;justify-content:space-between;align-items:flex-start;border-bottom:3px solid var(--green-head);padding-bottom:14px;margin-bottom:18px;}
+.report-eyebrow{color:var(--green-med);font-size:11px;font-weight:800;letter-spacing:.1em;text-transform:uppercase;}
+.report-title{margin:2px 0 4px;font-size:20px;color:#0E2014;}
+.report-period{font-size:13px;color:#4a5a51;font-weight:600;}
+.report-meta{font-size:11.5px;color:#6b7a71;text-align:right;}
+.report-table-wrap{border:1px solid #d9e3dd;}
+#tbl-relatorio thead th{background:var(--green-head);color:#fff;}
+#tbl-relatorio tbody td, #tbl-relatorio tfoot td{color:#15201A;border-bottom:1px solid #e2e8e4;}
+#tbl-relatorio tbody tr:nth-child(even){background:#f3f7f4;}
+#tbl-relatorio tfoot td{font-weight:800;background:#eaf3ee;border-top:2px solid var(--green-med);}
+
+@media print{
+body{background:#fff;}
+.sidebar, .no-print, #toast, .modal-overlay{display:none !important;}
+.main{padding:0;}
+.report-sheet{border:none;padding:0;}
+.view.hidden{display:none !important;}
+.view:not(#view-relatorios){display:none !important;}
+#view-relatorios .view-header, #view-relatorios .view-sub{display:none !important;}
+table{font-size:12px;}
+thead th{-webkit-print-color-adjust:exact;print-color-adjust:exact;}
+}
+</style>
+</head>
+<body>
+<div class="app">
+
+<nav class="sidebar">
+<div class="brand">
+<div class="eyebrow">Usina Vale</div>
+<h1>Controle Químico</h1>
+</div>
+<div class="nav-item active" data-tab="dashboard"><span class="ic">▦</span> Dashboard</div>
+<div class="nav-item" data-tab="entradas"><span class="ic">📥</span> Entradas</div>
+<div class="nav-item" data-tab="cadastro"><span class="ic">📋</span> Cadastro de Produtos</div>
+<div class="nav-item" data-tab="containers"><span class="ic">🛢</span> Containers</div>
+<div class="nav-item" data-tab="mov"><span class="ic">📝</span> Movimentação Diária</div>
+<div class="nav-item" data-tab="estoque"><span class="ic">📦</span> Estoque Atual</div>
+<div class="nav-item" data-tab="consumo"><span class="ic">📉</span> Consumo Diário</div>
+<div class="nav-item" data-tab="relatorios"><span class="ic">🖨</span> Relatórios</div>
+<div class="sidebar-footer" id="storage-mode">Dados salvos automaticamente.</div>
+</nav>
+
+<main class="main">
+
+<section id="view-dashboard" class="view">
+<div class="view-header"><h2>Dashboard Executivo</h2></div>
+<p class="view-sub">Atualizado automaticamente a partir de Containers, Movimentação, Estoque e Consumo.</p>
+
+<div class="card guide-card" id="guide-card">
+<button class="icon-btn guide-close" id="guide-close" title="Ocultar">✕</button>
+<h3 style="margin-bottom:10px;">Fluxo recomendado do dia</h3>
+<div class="guide-steps">
+<div class="guide-step"><span class="guide-num">1</span><div><b>Entradas</b><br><span>Chegou produto novo (container ou saco)? Lance na aba <b>Entradas</b>.</span></div></div>
+<div class="guide-step"><span class="guide-num">2</span><div><b>Movimentação</b><br><span>Fez uma leitura de nível ou retirou sacos do estoque? Lance na aba <b>Movimentação Diária</b>.</span></div></div>
+<div class="guide-step"><span class="guide-num">3</span><div><b>Consumo Diário</b><br><span>Quer registrar o consumo do dia? Adicione a data e o produto — o cálculo é automático.</span></div></div>
+<div class="guide-step"><span class="guide-num">4</span><div><b>Relatórios</b><br><span>Precisa de um relatório por dia, semana, mês ou safra? Gere e imprima na aba <b>Relatórios</b>.</span></div></div>
+</div>
+</div>
+
+<div class="kpi-grid">
+<div class="kpi"><div class="kpi-label">Estoque Total</div><div class="kpi-value" id="kpi-estoque-total">0</div></div>
+<div class="kpi amber"><div class="kpi-label">Último Consumo Lançado (kg)</div><div class="kpi-value" id="kpi-ultimo-consumo">—</div></div>
+<div class="kpi"><div class="kpi-label">Containers Ativos</div><div class="kpi-value" id="kpi-containers-ativos">0</div></div>
+<div class="kpi red"><div class="kpi-label">Alertas Críticos</div><div class="kpi-value" id="kpi-alertas">0</div></div>
+</div>
+
+<div class="chart-grid">
+<div class="chart-card"><h4>Estoque Atual por Produto (kg)</h4><canvas id="chart-estoque"></canvas></div>
+<div class="chart-card"><h4>Consumo Acumulado por Produto (kg)</h4><canvas id="chart-consumo"></canvas></div>
+<div class="chart-card wide"><h4>Evolução do Estoque (por lançamento)</h4><canvas id="chart-evolucao"></canvas></div>
+</div>
+</section>
+
+<section id="view-entradas" class="view hidden">
+<div class="view-header"><h2>Entradas</h2></div>
+<p class="view-sub">Use esta aba sempre que chegar produto novo na usina.</p>
+
+<div class="entradas-grid">
+<div class="card">
+<h3>📦 Novo Container (IBC)</h3>
+<form id="form-entrada-container" class="form-grid entradas-form">
+<div class="field"><label>Produto</label><select id="ent-cnt-produto" required></select></div>
+<div class="field"><label>Data de entrada</label><input type="date" id="ent-cnt-data" required></div>
+<div class="field"><label>Densidade (kg/L)</label><input type="number" step="0.001" id="ent-cnt-densidade" placeholder="Ex.: 0.95" required></div>
+<div class="field"><label>Altura total (cm)</label><input type="number" step="0.1" id="ent-cnt-altura" placeholder="Ex.: 120" required></div>
+<div class="field"><button class="primary" type="submit">+ Registrar Container</button></div>
+</form>
+</div>
+
+<div class="card">
+<h3>🛍 Entrada de Sacos</h3>
+<form id="form-entrada-saco" class="form-grid entradas-form">
+<div class="field"><label>Produto</label><select id="ent-saco-produto" required></select></div>
+<div class="field"><label>Data</label><input type="date" id="ent-saco-data" required></div>
+<div class="field"><label>Quantidade de sacos</label><input type="number" step="1" id="ent-saco-qtd" placeholder="Ex.: 40" required></div>
+<div class="field"><label>Observação</label><input type="text" id="ent-saco-obs" placeholder="opcional"></div>
+<div class="field"><button class="primary" type="submit">+ Registrar Entrada</button></div>
+</form>
+</div>
+</div>
+
+<div class="card" style="margin-top:4px;">
+<h3>Entradas Recentes</h3>
+<div class="table-wrap">
+<table id="tbl-entradas-recentes">
+<thead><tr><th>Data</th><th>Produto</th><th>Tipo</th><th>Quantidade</th><th>Equivalente (kg)</th></tr></thead>
+<tbody></tbody>
+</table>
+</div>
+</div>
+</section>
+
+<section id="view-cadastro" class="view hidden">
+<div class="view-header"><h2>Cadastro de Produtos</h2></div>
+<p class="view-sub">Cadastre cada produto químico antes de usá-lo.</p>
+
+<div class="card">
+<h3>Novo Produto</h3>
+<form id="form-produto" class="form-grid">
+<div class="field"><label>Nome do produto</label><input type="text" id="f-prod-nome" placeholder="Ex.: Antiespumante" required></div>
+<div class="field"><label>Tipo</label>
+<select id="f-prod-tipo"><option value="Container">Container</option><option value="Saco">Saco</option></select>
+</div>
+<div class="field hidden" id="f-prod-peso-wrap"><label>Peso por saco (kg)</label><input type="number" step="0.01" id="f-prod-peso" value="50"></div>
+<div class="field"><button class="primary" type="submit">+ Cadastrar Produto</button></div>
+</form>
+</div>
+
+<div class="table-wrap">
+<table id="tbl-produtos">
+<thead><tr><th>Produto</th><th>Tipo</th><th>Peso/Saco</th><th></th></tr></thead>
+<tbody></tbody>
+</table>
+</div>
+</section>
+
+<section id="view-containers" class="view hidden">
+<div class="view-header"><h2>Controle de Containers (IBC — 1000 L)</h2></div>
+<div class="table-wrap">
+<table id="tbl-containers">
+<thead><tr>
+<th>ID</th><th>Produto</th><th>Entrada</th><th>Densid.</th><th>Alt. Total</th>
+<th>Nível Atual</th><th>Volume</th><th>Estoque (kg)</th><th>Status</th><th>Alerta</th><th>Ações</th>
+</tr></thead>
+<tbody></tbody>
+</table>
+</div>
+</section>
+
+<section id="view-mov" class="view hidden">
+<div class="view-header"><h2>Movimentação Diária</h2></div>
+<div class="card">
+<h3>Nova Movimentação</h3>
+<form id="form-mov" class="form-grid">
+<div class="field"><label>Data</label><input type="date" id="f-mov-data" required></div>
+<div class="field"><label>Produto</label><select id="f-mov-produto" required></select></div>
+<div class="field"><label>Tipo</label>
+<select id="f-mov-tipo">
+<option>Medição Container</option>
+<option>Entrada Saco</option>
+<option>Saída Saco</option>
+</select>
+</div>
+<div class="field" id="f-mov-container-wrap"><label>Container</label><select id="f-mov-container"></select></div>
+<div class="field" id="f-mov-qtd-wrap"><label id="f-mov-qtd-label">Nível medido (cm)</label><input type="number" step="0.1" id="f-mov-qtd" required></div>
+<div class="field"><label>Observação</label><input type="text" id="f-mov-obs" placeholder="opcional"></div>
+<div class="field"><button class="primary" type="submit">+ Registrar</button></div>
+</form>
+</div>
+
+<div class="table-wrap">
+<table id="tbl-mov">
+<thead><tr><th>Data</th><th>Produto</th><th>Tipo</th><th>Container</th><th>Quantidade</th><th>Observação</th><th></th></tr></thead>
+<tbody></tbody>
+</table>
+</div>
+</section>
+
+<section id="view-estoque" class="view hidden">
+<div class="view-header"><h2>Estoque Atual</h2></div>
+<div class="table-wrap">
+<table id="tbl-estoque">
+<thead><tr><th>Produto</th><th>Tipo</th><th>Detalhe</th><th>Estoque Total</th></tr></thead>
+<tbody></tbody>
+</table>
+</div>
+<div class="card" style="margin-top:18px;display:flex;justify-content:space-between;align-items:center;">
+<h3 style="margin:0;">Estoque Total Geral</h3>
+<div style="font-size:24px;font-weight:800;color:var(--accent);" id="estoque-total-geral">0 kg</div>
+</div>
+</section>
+
+<section id="view-consumo" class="view hidden">
+<div class="view-header"><h2>Consumo Diário por Produto</h2></div>
+<div class="card">
+<h3>Novo Lançamento</h3>
+<form id="form-consumo" class="form-grid">
+<div class="field"><label>Data</label><input type="date" id="f-cons-data" required></div>
+<div class="field"><label>Produto</label><select id="f-cons-produto" required></select></div>
+<div class="field"><button class="primary" type="submit">+ Adicionar Linha</button></div>
+</form>
+</div>
+
+<div class="table-wrap">
+<table id="tbl-consumo">
+<thead><tr>
+<th>Data</th><th>Produto</th><th>Anterior (kg)</th><th>Entradas (kg)</th>
+<th>Atual (kg)</th><th>Consumo (kg)</th><th></th>
+</tr></thead>
+<tbody></tbody>
+</table>
+</div>
+
+<div class="card" style="margin-top:18px;">
+<h3>Backup dos Dados</h3>
+<div class="backup-bar">
+<button class="ghost" id="btn-export">⭳ Exportar backup (.json)</button>
+<label class="ghost" for="input-import" style="cursor:pointer;">⭱ Importar backup</label>
+<input type="file" id="input-import" accept="application/json">
+</div>
+</div>
+
+<div class="card" style="margin-top:18px;">
+<h3>Sincronização entre Computadores</h3>
+<div id="sync-status" class="sync-status-text sync-off">Sincronização desligada — dados salvos só neste navegador.</div>
+<div id="sync-form-area" style="margin-top:12px;">
+<textarea id="sync-config-input" rows="4" placeholder='Cole aqui o objeto de configuração do Firebase...'></textarea>
+<button class="primary" id="btn-sync-conectar" style="margin-top:10px;">☁ Conectar</button>
+</div>
+<div id="sync-connected-area" class="hidden backup-bar" style="margin-top:12px;">
+<button class="ghost" id="btn-sync-recarregar">⭯ Recarregar da nuvem agora</button>
+<button class="ghost" id="btn-sync-desconectar">Desconectar</button>
+</div>
+</div>
+
+<div class="card danger-zone" style="margin-top:18px;">
+<h3 style="color:var(--red);">Zona de Risco</h3>
+<button class="danger-btn" id="btn-limpar-dados">🗑 Limpar Todos os Dados</button>
+</div>
+</section>
+
+<section id="view-relatorios" class="view hidden">
+<div class="view-header"><h2>Relatórios</h2></div>
+<div class="card no-print">
+<h3>Gerar Relatório</h3>
+<div class="form-grid">
+<div class="field"><label>Período</label>
+<select id="f-rel-tipo">
+<option value="dia">Dia</option>
+<option value="semana">Semana</option>
+<option value="mes">Mês</option>
+<option value="safra">Safra (personalizado)</option>
+</select>
+</div>
+<div class="field" id="f-rel-dia-wrap"><label>Data</label><input type="date" id="f-rel-dia"></div>
+<div class="field hidden" id="f-rel-mes-wrap"><label>Mês</label><input type="month" id="f-rel-mes"></div>
+<div class="field hidden" id="f-rel-inicio-wrap"><label>Início</label><input type="date" id="f-rel-inicio"></div>
+<div class="field hidden" id="f-rel-fim-wrap"><label>Fim</label><input type="date" id="f-rel-fim"></div>
+<div class="field"><button class="primary" id="btn-gerar-relatorio" type="button">Gerar Relatório</button></div>
+</div>
+</div>
+
+<div id="relatorio-output" class="hidden">
+<div class="report-sheet">
+<div class="report-head">
+<div>
+<div class="report-eyebrow">Usina Vale</div>
+<h2 class="report-title">Relatório de Produtos Químicos</h2>
+<div class="report-period" id="rel-periodo-label"></div>
+</div>
+<div class="report-meta">Gerado em <span id="rel-gerado-em"></span></div>
+</div>
+<div class="table-wrap report-table-wrap">
+<table id="tbl-relatorio">
+<thead><tr><th>Produto</th><th>Tipo</th><th>Estoque Anterior (kg)</th><th>Entradas (kg)</th><th>Estoque Atual (kg)</th><th>Consumo (kg)</th></tr></thead>
+<tbody></tbody>
+<tfoot></tfoot>
+</table>
+</div>
+</div>
+<div class="backup-bar no-print" style="margin-top:16px;"><button class="primary" id="btn-imprimir">🖨 Imprimir / Salvar PDF</button></div>
+</div>
+</section>
+</div>
+
+<div id="modal-overlay" class="modal-overlay hidden">
+<div class="modal-box">
+<div class="modal-head"><h3 id="modal-title">Editar Container</h3><button class="icon-btn" id="modal-close">✕</button></div>
+<form id="form-edit-container" class="form-grid modal-grid">
+<div class="field"><label>Produto</label><select id="e-cnt-produto" required></select></div>
+<div class="field"><label>Data de entrada</label><input type="date" id="e-cnt-data" required></div>
+<div class="field"><label>Densidade (kg/L)</label><input type="number" step="0.001" id="e-cnt-densidade" required></div>
+<div class="field"><label>Altura total (cm)</label><input type="number" step="0.1" id="e-cnt-altura" required></div>
+<div class="field"><label>Nível atual (cm)</label><input type="number" step="0.1" id="e-cnt-nivel" required></div>
+<div class="field"><label>Status</label><select id="e-cnt-status"><option value="Em uso">Em uso</option><option value="Finalizado">Finalizado</option></select></div>
+</form>
+<div class="modal-foot"><button class="ghost" id="modal-cancel" type="button">Cancelar</button><button class="primary" id="modal-save" type="button">Salvar Alterações</button></div>
+</div>
+</div>
+
+<div id="toast"></div>
+
+<script>
+function containerKg(container) {
+const altura = Number(container.alturaTotal) || 0;
+const nivel = Number(container.nivelAtual) || 0;
+const densidade = Number(container.densidade) || 0;
+if (altura <= 0) return 0;
+return (nivel / altura) * 1000 * densidade;
+}
+function containerVolumePct(container) {
+const altura = Number(container.alturaTotal) || 0;
+const nivel = Number(container.nivelAtual) || 0;
+if (altura <= 0) return 0;
+return nivel / altura;
+}
+function containerAlerta(container) {
+if (container.status === "Finalizado") return "Finalizado";
+const vol = containerVolumePct(container);
+if (vol < 0.05) return "Critico";
+if (vol < 0.15) return "Atencao";
+return "OK";
+}
+function isContainerAtivo(container) { return container.status !== "Finalizado"; }
+function estoqueContainersProduto(containers, produto) {
+return containers.filter((c) => c.produto === produto && isContainerAtivo(c)).reduce((sum, c) => sum + containerKg(c), 0);
+}
+function estoqueSacosUnidadesProduto(movimentacoes, produto) {
+const entradas = movimentacoes.filter((m) => m.produto === produto && m.tipo === "Entrada Saco").reduce((s, m) => s + (Number(m.quantidade) || 0), 0);
+const saidas = movimentacoes.filter((m) => m.produto === produto && m.tipo === "Saída Saco").reduce((s, m) => s + (Number(m.quantidade) || 0), 0);
+return entradas - saidas;
+}
+function getProdutoCadastro(produtos, nome) { return produtos.find((p) => p.nome === nome) || null; }
+function estoqueTotalProduto(produtos, containers, movimentacoes, produto) {
+const cad = getProdutoCadastro(produtos, produto);
+if (!cad) return 0;
+if (cad.tipo === "Container") return estoqueContainersProduto(containers, produto);
+return estoqueSacosUnidadesProduto(movimentacoes, produto) * (Number(cad.pesoSaco) || 0);
+}
+function diaAnterior(dataISO) {
+const d = new Date(dataISO + "T00:00:00");
+d.setDate(d.getDate() - 1);
+return d.toISOString().slice(0, 10);
+}
+function nivelContainerNaData(container, movimentacoes, dataISO) {
+if (!container.dataEntrada || dataISO < container.dataEntrada) return null;
+const medicoes = movimentacoes.filter((m) => m.tipo === "Medição Container" && m.idContainer === container.id && m.data <= dataISO).sort((a, b) => (a.data < b.data ? -1 : a.data > b.data ? 1 : 0));
+if (medicoes.length > 0) return Number(medicoes[medicoes.length - 1].quantidade) || 0;
+return Number(container.alturaTotal) || 0;
+}
+function containerKgNaData(container, movimentacoes, dataISO) {
+const nivel = nivelContainerNaData(container, movimentacoes, dataISO);
+if (nivel === null) return 0;
+const altura = Number(container.alturaTotal) || 0;
+const densidade = Number(container.densidade) || 0;
+if (altura <= 0) return 0;
+return (nivel / altura) * 1000 * densidade;
+}
+function estoqueSacosUnidadesNaData(movimentacoes, produto, dataISO) {
+const entradas = movimentacoes.filter((m) => m.produto === produto && m.tipo === "Entrada Saco" && m.data <= dataISO).reduce((s, m) => s + (Number(m.quantidade) || 0), 0);
+const saidas = movimentacoes.filter((m) => m.produto === produto && m.tipo === "Saída Saco" && m.data <= dataISO).reduce((s, m) => s + (Number(m.quantidade) || 0), 0);
+return entradas - saidas;
+}
+function estoqueTotalProdutoNaData(produtos, containers, movimentacoes, produto, dataISO) {
+const cad = getProdutoCadastro(produtos, produto);
+if (!cad) return 0;
+if (cad.tipo === "Container") {
+return containers.filter((c) => c.produto === produto).reduce((s, c) => s + containerKgNaData(c, movimentacoes, dataISO), 0);
+}
+return estoqueSacosUnidadesNaData(movimentacoes, produto, dataISO) * (Number(cad.pesoSaco) || 0);
+}
+function entradasNoDia(produtos, containers, movimentacoes, produto, data) {
+const containerKgEntrada = containers.filter((c) => c.produto === produto && c.dataEntrada === data).reduce((s, c) => s + (Number(c.densidade) || 0) * 1000, 0);
+const cad = getProdutoCadastro(produtos, produto);
+const pesoSaco = cad ? Number(cad.pesoSaco) || 0 : 0;
+const sacoKgEntrada = movimentacoes.filter((m) => m.produto === produto && m.tipo === "Entrada Saco" && m.data === data).reduce((s, m) => s + (Number(m.quantidade) || 0), 0) * pesoSaco;
+return containerKgEntrada + sacoKgEntrada;
+}
+function calcConsumoRow(produtos, containers, movimentacoes, consumoRows, rowIndex) {
+const row = consumoRows[rowIndex];
+const entradas = entradasNoDia(produtos, containers, movimentacoes, row.produto, row.data);
+const atual = estoqueTotalProdutoNaData(produtos, containers, movimentacoes, row.produto, row.data);
+const anterior = estoqueTotalProdutoNaData(produtos, containers, movimentacoes, row.produto, diaAnterior(row.data));
+return { anterior, entradas, atual, consumo: anterior + entradas - atual };
+}
+function entradasNoPeriodo(produtos, containers, movimentacoes, produto, dataInicio, dataFim) {
+const containerKgEntrada = containers.filter((c) => c.produto === produto && c.dataEntrada >= dataInicio && c.dataEntrada <= dataFim).reduce((s, c) => s + (Number(c.densidade) || 0) * 1000, 0);
+const cad = getProdutoCadastro(produtos, produto);
+const pesoSaco = cad ? Number(cad.pesoSaco) || 0 : 0;
+const sacoKgEntrada = movimentacoes.filter((m) => m.produto === produto && m.tipo === "Entrada Saco" && m.data >= dataInicio && m.data <= dataFim).reduce((s, m) => s + (Number(m.quantidade) || 0), 0) * pesoSaco;
+return containerKgEntrada + sacoKgEntrada;
+}
+function calcRelatorioProduto(produtos, containers, movimentacoes, produto, dataInicio, dataFim) {
+const anterior = estoqueTotalProdutoNaData(produtos, containers, movimentacoes, produto, diaAnterior(dataInicio));
+const atual = estoqueTotalProdutoNaData(produtos, containers, movimentacoes, produto, dataFim);
+const entradas = entradasNoPeriodo(produtos, containers, movimentacoes, produto, dataInicio, dataFim);
+return { anterior, entradas, atual, consumo: anterior + entradas - atual };
+}
+function gerarRelatorio(produtos, containers, movimentacoes, dataInicio, dataFim) {
+return produtos.map((p) => {
+const calc = calcRelatorioProduto(produtos, containers, movimentacoes, p.nome, dataInicio, dataFim);
+return { produto: p.nome, tipo: p.tipo, ...calc };
+});
+}
+function inicioSemana(dataISO) {
+const d = new Date(dataISO + "T00:00:00");
+const dow = d.getDay();
+d.setDate(d.getDate() + (dow === 0 ? -6 : 1 - dow));
+return d.toISOString().slice(0, 10);
+}
+function fimSemana(dataISO) {
+const d = new Date(inicioSemana(dataISO) + "T00:00:00");
+d.setDate(d.getDate() + 6);
+return d.toISOString().slice(0, 10);
+}
+function inicioMes(anoMes) { return anoMes + "-01"; }
+function fimMes(anoMes) {
+const [y, m] = anoMes.split("-").map(Number);
+return new Date(y, m, 0).toISOString().slice(0, 10);
+}
+</script>
+
+<script>
+const state = { produtos: [], containers: [], movimentacoes: [], consumo: [], containerSeq: 0 };
+const STORAGE_KEYS = { produtos: "cq_produtos", containers: "cq_containers", movimentacoes: "cq_movimentacoes", consumo: "cq_consumo", containerSeq: "cq_container_seq" };
+const LS_PREFIX = "cq_app_";
+const SYNC_CONFIG_KEY = "cq_sync_config";
+let firebaseDb = null;
+let syncStatus = "off";
+
+function uid() { return Date.now().toString(36) + Math.random().toString(36).slice(2, 8); }
+function getSyncConfig() { try { const raw = localStorage.getItem(SYNC_CONFIG_KEY); return raw ? JSON.parse(raw) : null; } catch (e) { return null; } }
+function saveSyncConfig(cfg) { localStorage.setItem(SYNC_CONFIG_KEY, JSON.stringify(cfg)); }
+function clearSyncConfig() { localStorage.removeItem(SYNC_CONFIG_KEY); }
+
+function loadScript(src) {
+return new Promise((resolve) => {
+const s = document.createElement("script"); s.src = src; s.onload = resolve; document.head.appendChild(s);
+});
+}
+async function initFirebaseIfConfigured() {
+const cfg = getSyncConfig(); if (!cfg || !cfg.firebaseConfig) return;
+syncStatus = "connecting"; updateSyncStatusUI();
+try {
+await loadScript("https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js");
+await loadScript("https://www.gstatic.com/firebasejs/10.12.2/firebase-database-compat.js");
+if (!window.firebase.apps.length) window.firebase.initializeApp(cfg.firebaseConfig);
+firebaseDb = window.firebase.database();
+syncStatus = "on";
+} catch (e) { firebaseDb = null; syncStatus = "error"; }
+updateSyncStatusUI();
+}
+function updateSyncStatusUI() {
+const el = document.getElementById("sync-status"); if (!el) return;
+el.textContent = { off: "Sincronização desligada.", connecting: "Conectando...", on: "✓ Sincronizado na nuvem.", error: "⚠ Erro na conexão." }[syncStatus];
+}
+async function storageGet(key, fallback) {
+if (firebaseDb) { try { const snap = await firebaseDb.ref("usina_vale_quimicos/" + key).once("value"); if (snap.exists()) return snap.val(); } catch (e) {} }
+try { const raw = localStorage.getItem(LS_PREFIX + key); return raw ? JSON.parse(raw) : fallback; } catch (e) { return fallback; }
+}
+async function storageSet(key, value) {
+try { localStorage.setItem(LS_PREFIX + key, JSON.stringify(value)); } catch (e) {}
+if (firebaseDb) { try { await firebaseDb.ref("usina_vale_quimicos/" + key).set(value); } catch (e) {} }
+}
+async function loadAll() {
+state.produtos = await storageGet(STORAGE_KEYS.produtos, []);
+state.containers = await storageGet(STORAGE_KEYS.containers, []);
+state.movimentacoes = await storageGet(STORAGE_KEYS.movimentacoes, []);
+state.consumo = await storageGet(STORAGE_KEYS.consumo, []);
+state.containerSeq = await storageGet(STORAGE_KEYS.containerSeq, 0);
+}
+async function save(key) { await storageSet(STORAGE_KEYS[key], state[key]); }
+function toast(msg) { const el = document.getElementById("toast"); el.textContent = msg; el.className = "toast show"; setTimeout(() => el.className = "toast", 2000); }
+function fmtKg(n) { return (Number(n) || 0).toLocaleString("pt-BR", { minimumFractionDigits: 1, maximumFractionDigits: 1 }); }
+function fmtPct(n) { return ((Number(n) || 0) * 100).toLocaleString("pt-BR", { minimumFractionDigits: 1 }) + "%"; }
+function fmtDate(d) { if (!d) return "—"; const [y, m, day] = d.split("-"); return `${day}/${m}/${y}`; }
+
+function setupNav() {
+document.querySelectorAll(".nav-item").forEach((btn) => {
+btn.addEventListener("click", () => {
+document.querySelectorAll(".nav-item").forEach((b) => b.classList.remove("active"));
+btn.classList.add("active");
+document.querySelectorAll(".view").forEach((v) => v.classList.add("hidden"));
+document.getElementById("view-" + btn.dataset.tab).classList.remove("hidden");
+if (btn.dataset.tab === "dashboard") renderDashboard();
+});
+});
+}
+function renderCadastro() {
+const tbody = document.querySelector("#tbl-produtos tbody"); tbody.innerHTML = "";
+state.produtos.forEach((p, i) => {
+tbody.innerHTML += `<tr><td>${escapeHtml(p.nome)}</td><td><span class="badge badge-tipo">${p.tipo}</span></td><td>${p.tipo === "Saco" ? p.pesoSaco + " kg" : "—"}</td><td><button class="icon-btn danger" onclick="removeProduto(${i})">✕</button></td></tr>`;
+});
+refreshSelects();
+}
+window.removeProduto = async (i) => { state.produtos.splice(i, 1); await save("produtos"); renderCadastro(); };
+function setupCadastroForm() {
+document.getElementById("form-produto").addEventListener("submit", async (e) => {
+e.preventDefault();
+const nome = document.getElementById("f-prod-nome").value.trim();
+const tipo = document.getElementById("f-prod-tipo").value;
+const pesoSaco = document.getElementById("f-prod-peso").value;
+state.produtos.push({ nome, tipo, pesoSaco: tipo === "Saco" ? Number(pesoSaco) : null });
+await save("produtos"); e.target.reset(); renderCadastro();
+});
+}
+function renderContainers() {
+const tbody = document.querySelector("#tbl-containers tbody"); tbody.innerHTML = "";
+state.containers.forEach((c, i) => {
+tbody.innerHTML += `<tr><td>${c.codigo}</td><td>${escapeHtml(c.produto)}</td><td>${fmtDate(c.dataEntrada)}</td><td>${c.densidade}</td><td>${c.alturaTotal}</td><td>${c.nivelAtual}</td><td>${fmtPct(containerVolumePct(c))}</td><td>${fmtKg(containerKg(c))}</td><td>${c.status}</td><td><span class="badge badge-ok">${containerAlerta(c)}</span></td><td><button class="icon-btn danger" onclick="removeContainer(${i})">✕</button></td></tr>`;
+});
+}
+window.removeContainer = async (i) => { state.containers.splice(i, 1); await save("containers"); renderContainers(); };
+function refreshSelects() {
+const opts = state.produtos.map((p) => `<option value="${escapeHtml(p.nome)}">${escapeHtml(p.nome)}</option>`).join("");
+document.getElementById("f-mov-produto").innerHTML = opts;
+document.getElementById("f-cons-produto").innerHTML = opts;
+}
+function escapeHtml(s) { return String(s).replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c])); }
+function renderAll() { renderCadastro(); renderContainers(); refreshSelects(); }
+async function boot() { await initFirebaseIfConfigured(); await loadAll(); setupNav(); setupCadastroForm(); renderAll(); }
+document.addEventListener("DOMContentLoaded", boot);
+</script>
+</body>
+</html>
