@@ -330,18 +330,18 @@ thead th{-webkit-print-color-adjust:exact;print-color-adjust:exact;}
 <div class="card">
 <h3>Novo Produto</h3>
 <form id="form-produto" class="form-grid">
-<div class="field"><label>Nome do produto</label><input type="text" id="f-prod-nome" placeholder="Ex.: Antiespumante" required></div>
+<div class="field"><label>Nome do produto</label><input type="text" id="f-prod-nome" placeholder="Ex.: Soda, Sal, Cal..." required></div>
 <div class="field"><label>Tipo</label>
 <select id="f-prod-tipo"><option value="Container">Container</option><option value="Saco">Saco</option></select>
 </div>
-<div class="field hidden" id="f-prod-peso-wrap"><label>Peso por saco (kg)</label><input type="number" step="0.01" id="f-prod-peso" value="50"></div>
+<div class="field" id="f-prod-peso-wrap"><label>Peso por embalagem/saco (kg)</label><input type="number" step="0.01" id="f-prod-peso" placeholder="Ex: 25, 50, 1000" required></div>
 <div class="field"><button class="primary" type="submit">+ Cadastrar Produto</button></div>
 </form>
 </div>
 
 <div class="table-wrap">
 <table id="tbl-produtos">
-<thead><tr><th>Produto</th><th>Tipo</th><th>Peso/Saco</th><th></th></tr></thead>
+<thead><tr><th>Produto</th><th>Tipo</th><th>Peso Emb.</th><th></th></tr></thead>
 <tbody></tbody>
 </table>
 </div>
@@ -708,13 +708,25 @@ refreshSelects();
 }
 window.removeProduto = async (i) => { state.produtos.splice(i, 1); await save("produtos"); renderCadastro(); };
 function setupCadastroForm() {
+const tipoSel = document.getElementById("f-prod-tipo");
+const pesoWrap = document.getElementById("f-prod-peso-wrap");
+tipoSel.addEventListener("change", () => {
+if(tipoSel.value === "Saco") {
+pesoWrap.classList.remove("hidden");
+document.getElementById("f-prod-peso").required = true;
+} else {
+pesoWrap.classList.add("hidden");
+document.getElementById("f-prod-peso").required = false;
+}
+});
+
 document.getElementById("form-produto").addEventListener("submit", async (e) => {
 e.preventDefault();
 const nome = document.getElementById("f-prod-nome").value.trim();
-const tipo = document.getElementById("f-prod-tipo").value;
+const tipo = tipoSel.value;
 const pesoSaco = document.getElementById("f-prod-peso").value;
 state.produtos.push({ nome, tipo, pesoSaco: tipo === "Saco" ? Number(pesoSaco) : null });
-await save("produtos"); e.target.reset(); renderCadastro();
+await save("produtos"); e.target.reset(); pesoWrap.classList.add("hidden"); renderCadastro();
 });
 }
 function renderContainers() {
